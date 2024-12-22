@@ -24,9 +24,17 @@ rawurlencode() {
 }
 
 _gitlab_upstream=https://salsa.debian.org
+curl_dl() { curl "${_gitlab_upstream}/${1}" 2>/dev/null; }
+wget_dl() { wget "${_gitlab_upstream}/${1}" -o /dev/null -O -; }
+
+if command -v wget; then
+  DOWNLOAD=wget_dl
+else
+  DOWNLOAD=curl_dl
+fi
 
 pkgname=busybox-aaropa
-_latest_tag=$(curl "${_gitlab_upstream}/api/v4/projects/installer-team%2Fbusybox/repository/tags" | grep '"name":' | head -1 | awk -F '"' '{print $4}')
+_latest_tag=$($DOWNLOAD "api/v4/projects/installer-team%2Fbusybox/repository/tags" | grep '"name":' | head -1 | awk -F '"' '{print $4}')
 _branch=${_latest_tag%%/*}
 _full_ver=${_latest_tag##*/}
 _encoded_ver=$(rawurlencode "$_full_ver")
@@ -35,7 +43,7 @@ pkgver=${_ver%%/*}
 pkgrel=${_ver##*/}
 
 # Fetch source package
-wget "${_gitlab_upstream}/installer-team/busybox/-/archive/${_branch}/${_encoded_ver}/busybox-${_branch}-${_encoded_ver}.tar.gz" -O - | tar -xzf -
+$DOWNLOAD "installer-team/busybox/-/archive/${_branch}/${_encoded_ver}/busybox-${_branch}-${_encoded_ver}.tar.gz" | tar -xzf -
 cp -rn busybox-${_branch}-${_full_ver}/* .
 rm -rf busybox-${_branch}-${_full_ver}
 
