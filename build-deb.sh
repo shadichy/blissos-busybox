@@ -24,10 +24,10 @@ rawurlencode() {
 }
 
 _gitlab_upstream=https://salsa.debian.org
-curl_dl() { curl "${_gitlab_upstream}/${1}" 2>/dev/null; }
 wget_dl() { wget "${_gitlab_upstream}/${1}" -o /dev/null -O -; }
+curl_dl() { curl "${_gitlab_upstream}/${1}" 2>/dev/null; }
 
-if command -v wget; then
+if command -v wget >/dev/null; then
   DOWNLOAD=wget_dl
 else
   DOWNLOAD=curl_dl
