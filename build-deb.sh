@@ -109,5 +109,5 @@ dpkg-buildpackage -b --no-sign
 cat <<EOF >../metadata.yml
 Name: ${pkgname}
 Version: ${_ver}
-Variants: aaropa
+Variants: aaropa aaropa-dbgsym
 EOF
