@@ -33,7 +33,7 @@ else
   DOWNLOAD=curl_dl
 fi
 
-pkgname=busybox-aaropa
+pkgname=busybox
 _latest_tag=$($DOWNLOAD "api/v4/projects/installer-team%2Fbusybox/repository/tags" | grep '"name":' | head -1 | awk -F '"' '{print $4}')
 _branch=${_latest_tag%%/*}
 _full_ver=${_latest_tag##*/}
@@ -109,5 +109,5 @@ dpkg-buildpackage -b --no-sign
 cat <<EOF >../metadata.yml
 Name: ${pkgname}
 Version: ${_ver}
-Variants: default
+Variants: busybox-aaropa
 EOF
