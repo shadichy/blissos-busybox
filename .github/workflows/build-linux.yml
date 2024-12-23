@@ -54,8 +54,8 @@ jobs:
         with:
           path: |
             metadata.yml
-            busybox-aaropa_*_*.buildinfo
-            busybox-aaropa_*_*.changes
+            busybox_*_*.buildinfo
+            busybox_*_*.changes
             busybox-aaropa_*_*.deb
 
   release:
