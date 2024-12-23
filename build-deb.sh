@@ -56,6 +56,7 @@ while read -r line; do
   echo -e "$line" >>$control.tmp
   [ "$line" ] || break
 done <$control
+unset IFS
 
 cat <<'EOF' >>$control.tmp
 Package: busybox-aaropa
@@ -83,9 +84,21 @@ EOF
 cp -f $control.tmp $control
 
 # Modify build rules
-sed -ri 's/flavours = .+$/flavours = blissos/g' debian/rules
-sed -ri 's/test-deb/test-blissos/g' debian/rules
-sed -ri 's/(\s*(override_|execute_before_)?dh_install(init|systemd))/# \1/g' debian/rules
+rules=debian/rules
+echo >$rules.tmp
+
+IFS=$'\n'
+while read -r line; do
+  case "$line" in
+  flavours\ =\ *) echo 'flavours = blissos' >>$rules.tmp ;;
+  *test-deb*) echo -e "${line//test-deb/test-blissos}" >>$rules.tmp ;;
+  execute_*) break ;;
+  *) echo -e "$line" >>$rules.tmp ;;
+  esac
+done <$rules
+unset IFS
+
+cp -f $rules.tmp $rules
 
 # Create .orig tarball
 tar -cJf ../${pkgname}_${pkgver}.orig.tar.xz .
