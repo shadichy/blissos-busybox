@@ -57,6 +57,7 @@ jobs:
             busybox_*_*.buildinfo
             busybox_*_*.changes
             busybox-aaropa_*_*.deb
+            busybox-aaropa-dbgsym_*_*.deb
 
   release:
     name: Release
