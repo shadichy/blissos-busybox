@@ -109,5 +109,5 @@ dpkg-buildpackage -b --no-sign
 cat <<EOF >../metadata.yml
 Name: ${pkgname}
 Version: ${_ver}
-Variants: busybox-aaropa
+Variants: aaropa
 EOF
