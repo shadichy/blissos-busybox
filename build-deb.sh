@@ -83,7 +83,9 @@ EOF
 cp -f $control.tmp $control
 
 # Modify build rules
-sed -r -i 's/flavours = .+$/flavours = blissos/g;s/test-deb/test-blissos/g' debian/rules
+sed -ri 's/flavours = .+$/flavours = blissos/g' debian/rules
+sed -ri 's/test-deb/test-blissos/g' debian/rules
+sed -ri 's/(\s*dh_install(init|systemd))/# \1/g' debian/rules
 
 # Create .orig tarball
 tar -cJf ../${pkgname}_${pkgver}.orig.tar.xz .
