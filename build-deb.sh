@@ -49,7 +49,7 @@ rm -rf busybox-${_branch}-${_full_ver}
 
 # Modify control file
 control=debian/control
-echo >$control.tmp
+touch $control.tmp
 
 IFS=$'\n'
 while read -r line; do
@@ -85,7 +85,7 @@ cp -f $control.tmp $control
 
 # Modify build rules
 rules=debian/rules
-echo >$rules.tmp
+touch $rules.tmp
 
 IFS=$'\n'
 while read -r line; do
