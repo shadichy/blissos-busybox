@@ -48,17 +48,17 @@ cp -rn busybox-${_branch}-${_full_ver}/* .
 rm -rf busybox-${_branch}-${_full_ver}
 
 # Modify control file
-control=debian/control
-touch $control.tmp
+control=debian/control.tmp
+touch $control
 
 IFS=$'\n'
 while read -r line; do
-  echo -e "$line" >>$control.tmp
+  echo -e "$line" >>$control
   [ "$line" ] || break
-done <$control
+done <${control%.tmp}
 unset IFS
 
-cat <<'EOF' >>$control.tmp
+cat <<'EOF' >>$control
 Package: busybox-aaropa
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}
@@ -81,24 +81,24 @@ Description: Tiny utilities for small and embedded systems
  This variant of busybox is only used in BlissOS initrd.img.
 EOF
 
-cp -f $control.tmp $control
+cp -f $control ${control%.tmp}
 
 # Modify build rules
-rules=debian/rules
-touch $rules.tmp
+rules=debian/rules.tmp
+touch $rules
 
 IFS=$'\n'
 while read -r line; do
   case "$line" in
-  flavours\ =\ *) echo 'flavours = blissos' >>$rules.tmp ;;
-  *test-deb*) echo -e "${line//test-deb/test-blissos}" >>$rules.tmp ;;
+  flavours\ =\ *) echo 'flavours = blissos' >>$rules ;;
+  *test-deb*) echo -e "${line//test-deb/test-blissos}" >>$rules ;;
   execute_*) break ;;
-  *) echo -e "$line" >>$rules.tmp ;;
+  *) echo -e "$line" >>$rules ;;
   esac
-done <$rules
+done <${rules%.tmp}
 unset IFS
 
-cp -f $rules.tmp $rules
+cp -f $rules ${rules%.tmp}
 
 # Create .orig tarball
 tar -cJf ../${pkgname}_${pkgver}.orig.tar.xz .
