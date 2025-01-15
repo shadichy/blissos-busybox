@@ -1,12 +1,13 @@
 name: Generate linux packages
 
 on:
+  schedule:
+    - cron: "0 0 15 * *"
   push:
     branches:
       - main
     tags:
       - v*
-      - r*
   pull_request:
     branches:
       - main
@@ -81,5 +82,30 @@ jobs:
         with:
           token: "${{ secrets.RELEASE_TOKEN }}"
           prerelease: false
+          files: |
+            ${{ steps.download-buildfiles.outputs.download-path }}/*
+
+  monthly-release:
+    name: Montly release
+    needs: build
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download buildfiles
+        id: download-buildfiles
+        uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: "*"
+          merge-multiple: true
+      - name: List Files
+        run: ls -R ${{ steps.download-buildfiles.outputs.download-path }}
+    
+      - uses: "softprops/action-gh-release@v2.1.0"
+        with:
+          token: "${{ secrets.RELEASE_TOKEN }}"
+          prerelease: false
+          tag_name: "r${{ github.run_number }}"
+          name: "Monthly release r${{ github.run_number }}"
           files: |
             ${{ steps.download-buildfiles.outputs.download-path }}/*
