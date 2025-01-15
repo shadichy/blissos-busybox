@@ -1,4 +1,4 @@
-name: Generate linux packages
+name: Generate tag
 
 on:
   schedule:
