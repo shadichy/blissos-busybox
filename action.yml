@@ -1,0 +1,63 @@
+name: 'Build DEB package'
+description: |
+  Build a DEB package and produce artifact for the current project
+inputs:
+  distro:
+    description: |
+      The Debian-based Linux distribution to build the package for.
+      Used in Dockerfile
+    required: true
+    default: "debian:latest"
+  package_name:
+    description: |
+      Overrides the name of the package to build
+    required: false
+  package_version:
+    description: |
+      Overrides the version of the package to build
+    required: false
+outputs:
+  artifact_path:
+    description: |
+      The path to the generated DEB packages, build infomation and metadata file
+    value: "built-deb-files.zip"
+runs:
+  using: "composite"
+  steps:
+    - name: Set Dockerfile distro
+      run: sed -ir 's/^FROM +*$/FROM ${{ inputs.distro }}/gi' ${{ github.action_path }}/Dockerfile
+      shell: bash
+
+    - name: Generate debian package info
+      if: ${{ inputs.package_name != '' && inputs.package_version != '' }}
+      run: |
+        apt install -y debhelper
+        dh_make -p ${{ inputs.package_name }}_${{ inputs.package_version }}
+      shell: bash
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      run: |
+        docker buildx create --use --name debian-deb --buildkitd-flags '--allow-insecure-entitlement security.insecure'
+        docker buildx build --builder debian-deb -f ${{ github.action_path }}/Dockerfile -t debian --allow security.insecure --output type=tar,dest=build.tar .
+      shell: bash
+
+    - name: Export build files
+      run: |
+        mkdir build
+        sudo tar -C build -psxf build.tar
+        mv build/*.{deb,buildinfo,changes} .
+    
+    - name: Compress build files
+      run: zip -j built-deb-files.zip *.deb *.buildinfo *.changes metadata.yml
+      shell: bash
+      
+    - name: Clean up
+      run: sudo rm -rf build build.tar
+      shell: bash
+    
