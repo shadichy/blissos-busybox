@@ -52,6 +52,7 @@ runs:
         mkdir build
         sudo tar -C build -psxf build.tar
         mv build/*.{deb,buildinfo,changes} .
+      shell: bash
     
     - name: Compress build files
       run: zip -j built-deb-files.zip *.deb *.buildinfo *.changes metadata.yml
