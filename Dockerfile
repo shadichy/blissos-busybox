@@ -11,7 +11,7 @@ COPY . /build
 WORKDIR /build
 
 # Install dependencies
-RUN yes | apt install -y $(dpkg-checkbuilddeps | awk -F ':' '{print $4}') || :
+RUN yes | apt install -y $(dpkg-checkbuilddeps 2>&1 | grep 'Unmet build dependencies' | awk -F ':' '{print $4}') || :
 
 # Build binary package
 RUN dpkg-buildpackage -b --no-sign
