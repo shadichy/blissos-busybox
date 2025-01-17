@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1-labs
-FROM debian:latests
+FROM debian:latest
 
 # Update packages
 RUN apt update && apt upgrade -y
