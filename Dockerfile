@@ -11,7 +11,7 @@ COPY . /build
 WORKDIR /build
 
 # Install dependencies
-RUN yes | dpkg-checkbuilddeps || :
+RUN yes | apt install -y $(dpkg-checkbuilddeps | awk -F ':' '{print $4}') || :
 
 # Build binary package
 RUN dpkg-buildpackage -b --no-sign
