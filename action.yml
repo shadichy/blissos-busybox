@@ -4,10 +4,34 @@ description: |
 inputs:
   distro:
     description: |
-      The Debian-based Linux distribution to build the package for.
+      The Debian-based Linux distribution to build the package for
       Used in Dockerfile
     required: true
     default: "debian:latest"
+  arch:
+    description: |
+      The architecture to build the package for
+    required: true
+    default: "amd64"
+  build_arguments:
+    description: |
+      Arguments to pass to the command dpkg-buildpackage
+    required: true
+    default: "-b"
+  build_options:
+    description: |
+      Options to pass to the build process (via DEB_BUILD_OPTIONS)
+    required: true
+    default: ""
+  build_profiles:
+    description: |
+      Options to pass to the build process (via DEB_BUILD_PROFILES)
+    required: true
+    default: ""
+  gpg_signing_key:
+    description: |
+      The GPG key to use for signing the package
+    required: false
   package_name:
     description: |
       Overrides the name of the package to build
@@ -16,11 +40,31 @@ inputs:
     description: |
       Overrides the version of the package to build
     required: false
+  package_maintainer:
+    description: |
+      Overrides the maintainer of the package maintainer
+      The syntax is: Maintainer Name <maintainer@email>
+    required: false
+  package_class:
+    description: |
+      Set the package class
+      Available classes:
+        (s) single
+        (i) arch-independent
+        (l) library
+        (p) python
+    required: true
+    default: "s"
+  package_generate_orig:
+    description: |
+      Generate the .orig source package
+    required: false
+    default: false
 outputs:
   artifact_path:
     description: |
       The path to the generated DEB packages, build infomation and metadata file
-    value: "built-deb-files.zip"
+    value: "built-deb-files-${{ inputs.arch }}.zip"
 runs:
   using: "composite"
   steps:
@@ -30,10 +74,37 @@ runs:
 
     - name: Generate debian package info
       if: ${{ inputs.package_name != '' && inputs.package_version != '' }}
+      env:
+        DEB_MAINTAINER: ${{ inputs.package_maintainer }}
+        DEB_GENERATE_ORIG: ${{ inputs.package_generate_orig }}
       run: |
         apt install -y debhelper
-        dh_make -p ${{ inputs.package_name }}_${{ inputs.package_version }}
+        
+        if [ "$DEB_GENERATE_ORIG" == true ]; then
+          ARG_GEN_ORIG=-n
+        fi
+
+        if [ "$DEB_MAINTAINER" ]; then
+          echo "DEBEMAIL='$(echo $DEB_MAINTAINER | awk -F '<' '{print $2}' | awk -F '>' '{print $1}')'" >>"$GITHUB_OUTPUT"
+          echo "DEBFULLNAME='$(echo $DEB_MAINTAINER | awk -F '<' '{print $1}')'" >>"$GITHUB_OUTPUT"
+          source "$GITHUB_OUTPUT"
+        fi
+
+        dh_make -y -d \
+          -p ${{ inputs.package_name }}_${{ inputs.package_version }} \
+          -C ${{ inputs.package_class }} \
+          ${DEBEMAIL:+ -e $DEBEMAIL} \
+          $ARG_GEN_ORIG
       shell: bash
+
+    - name: Set up environment
+        run: |
+          echo "DEB_ARCH='${{ inputs.arch }}'" >>"$GITHUB_OUTPUT"
+          echo "DEB_BUILD_ARGS='${{ inputs.build_arguments }}'" >>"$GITHUB_OUTPUT"
+          echo "DEB_BUILD_OPTIONS='${{ inputs.build_options }}'" >>"$GITHUB_OUTPUT"
+          echo "DEB_BUILD_PROFILES='${{ inputs.build_profiles }}'" >>"$GITHUB_OUTPUT"
+          echo "GPG_SECRET='${{ inputs.gpg_signing_key }}'" >>"$GITHUB_OUTPUT"
+          cp "$GITHUB_OUTPUT" .env
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -43,6 +114,7 @@ runs:
 
     - name: Build Docker image
       run: |
+        cp ${{ github.action_path }}/.action_build.sh .
         docker buildx create --use --name debian-deb --buildkitd-flags '--allow-insecure-entitlement security.insecure'
         docker buildx build --builder debian-deb -f ${{ github.action_path }}/Dockerfile -t debian --allow security.insecure --output type=tar,dest=build.tar .
       shell: bash
@@ -54,8 +126,15 @@ runs:
         mv build/*.{deb,buildinfo,changes} .
       shell: bash
     
+    - name: Generate metadata.yml
+        env:
+          DEB_ARCH: ${{ inputs.arch }}
+        run: |
+          ${{ github.action_path }}/.action_gen-metadata.sh
+      shell: bash
+    
     - name: Compress build files
-      run: zip -j built-deb-files.zip *.deb *.buildinfo *.changes metadata.yml
+      run: zip -j ${{ outputs.artifact_path }} *.deb *.buildinfo *.changes metadata.yml
       shell: bash
       
     - name: Clean up
