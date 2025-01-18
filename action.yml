@@ -114,7 +114,7 @@ runs:
 
     - name: Build Docker image
       run: |
-        cp ${{ github.action_path }}/.action_build.sh .
+        cp ${{ github.action_path }}/action_build.sh .
         docker buildx create --use --name debian-deb --buildkitd-flags '--allow-insecure-entitlement security.insecure'
         docker buildx build --builder debian-deb -f ${{ github.action_path }}/Dockerfile -t debian --allow security.insecure --output type=tar,dest=build.tar .
       shell: bash
@@ -130,7 +130,7 @@ runs:
         env:
           DEB_ARCH: ${{ inputs.arch }}
         run: |
-          ${{ github.action_path }}/.action_gen-metadata.sh
+          ${{ github.action_path }}/action_gen-metadata.sh
       shell: bash
     
     - name: Compress build files

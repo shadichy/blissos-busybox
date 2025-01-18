@@ -5,6 +5,6 @@ COPY . /build
 WORKDIR /build
 
 # Build binary package
-RUN ./.action_build.sh
+RUN ./action_build.sh
 
 # Gen
