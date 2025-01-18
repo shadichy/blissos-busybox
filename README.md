@@ -1,2 +1,2 @@
 # debian-buildpackage-template
-Template for build and distribute Debian package
+Template for build and distribute Debian package.
