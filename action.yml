@@ -44,6 +44,7 @@ inputs:
     description: |
       Overrides the maintainer of the package maintainer
       The syntax is Maintainer Name <maintainer@email>
+      Maintainer must match the owner of gpg_signing_key (if specified)
     required: false
   package_class:
     description: |
