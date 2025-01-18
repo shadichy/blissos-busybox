@@ -43,16 +43,12 @@ inputs:
   package_maintainer:
     description: |
       Overrides the maintainer of the package maintainer
-      The syntax is: Maintainer Name <maintainer@email>
+      The syntax is Maintainer Name <maintainer@email>
     required: false
   package_class:
     description: |
       Set the package class
-      Available classes:
-        (s) single
-        (i) arch-independent
-        (l) library
-        (p) python
+      Available classes are (s) single, (i) arch-independent, (l) library, (p) python
     required: true
     default: "s"
   package_generate_orig:
@@ -98,13 +94,14 @@ runs:
       shell: bash
 
     - name: Set up environment
-        run: |
-          echo "DEB_ARCH='${{ inputs.arch }}'" >>"$GITHUB_OUTPUT"
-          echo "DEB_BUILD_ARGS='${{ inputs.build_arguments }}'" >>"$GITHUB_OUTPUT"
-          echo "DEB_BUILD_OPTIONS='${{ inputs.build_options }}'" >>"$GITHUB_OUTPUT"
-          echo "DEB_BUILD_PROFILES='${{ inputs.build_profiles }}'" >>"$GITHUB_OUTPUT"
-          echo "GPG_SECRET='${{ inputs.gpg_signing_key }}'" >>"$GITHUB_OUTPUT"
-          cp "$GITHUB_OUTPUT" .env
+      run: |
+        echo "DEB_ARCH='${{ inputs.arch }}'" >>"$GITHUB_OUTPUT"
+        echo "DEB_BUILD_ARGS='${{ inputs.build_arguments }}'" >>"$GITHUB_OUTPUT"
+        echo "DEB_BUILD_OPTIONS='${{ inputs.build_options }}'" >>"$GITHUB_OUTPUT"
+        echo "DEB_BUILD_PROFILES='${{ inputs.build_profiles }}'" >>"$GITHUB_OUTPUT"
+        echo "GPG_SECRET='${{ inputs.gpg_signing_key }}'" >>"$GITHUB_OUTPUT"
+        cp "$GITHUB_OUTPUT" .env
+      shell: bash
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -125,19 +122,18 @@ runs:
         sudo tar -C build -psxf build.tar
         mv build/*.{deb,buildinfo,changes} .
       shell: bash
-    
+
     - name: Generate metadata.yml
-        env:
-          DEB_ARCH: ${{ inputs.arch }}
-        run: |
-          ${{ github.action_path }}/action_gen-metadata.sh
+      env:
+        DEB_ARCH: ${{ inputs.arch }}
+      run: |
+        ${{ github.action_path }}/action_gen-metadata.sh
       shell: bash
-    
+
     - name: Compress build files
       run: zip -j ${{ outputs.artifact_path }} *.deb *.buildinfo *.changes metadata.yml
       shell: bash
-      
+
     - name: Clean up
       run: sudo rm -rf build build.tar
       shell: bash
-    
