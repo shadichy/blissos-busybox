@@ -19,7 +19,7 @@ if [ "$DEB_ARCH" != $(dpkg --print-architecture) ]; then
   export CONFIG_SITE=/etc/dpkg-cross/cross-config.$DEB_ARCH
 fi
 
-yes | apt install -y $(dpkg-checkbuilddeps 2>&1 | grep 'Unmet build dependencies' | awk -F ':' '{print $4}' | sed "s/ /:$DEB_ARCH /g") || :
+yes | apt install -y $(dpkg-checkbuilddeps 2>&1 | grep 'Unmet build dependencies' | awk -F ':' '{print $4}' | sed -r "s/([a-z0-9]) /\1:$DEB_ARCH /gi") || :
 
 export DEBEMAIL DEBFULLNAME DEB_BUILD_OPTIONS DEB_BUILD_PROFILES
 
@@ -30,4 +30,4 @@ else
 fi
 
 # Build binary package
-RUN dpkg-buildpackage $DEB_BUILD_ARGS
+dpkg-buildpackage $DEB_BUILD_ARGS
