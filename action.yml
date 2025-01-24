@@ -132,7 +132,7 @@ runs:
       shell: bash
 
     - name: Compress build files
-      run: zip -j ${{ outputs.artifact_path }} *.deb *.buildinfo *.changes metadata.yml
+      run: zip -j 'built-deb-files-${{ inputs.arch }}.zip' *.deb *.buildinfo *.changes metadata.yml
       shell: bash
 
     - name: Clean up
