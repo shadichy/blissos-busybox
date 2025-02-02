@@ -28,6 +28,8 @@ jobs:
 
       - name: Build DEB package
         uses: DevChall-by-SDCY-and-VXM/debian-buildpackage-template@main
+        with:
+          distro: devuan/migrated:ceres-slim
 
       - name: Extract artifact
         run: unzip -o built-deb-files-*.zip
