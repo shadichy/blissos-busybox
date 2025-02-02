@@ -74,8 +74,8 @@ runs:
       env:
         DEB_MAINTAINER: ${{ inputs.package_maintainer }}
       run: |
-        echo "DEBEMAIL='$(echo $DEB_MAINTAINER | awk -F '<' '{print $2}' | awk -F '>' '{print $1}')'" >>"$GITHUB_OUTPUT"
-        echo "DEBFULLNAME='$(echo $DEB_MAINTAINER | awk -F '<' '{print $1}')'" >>"$GITHUB_OUTPUT"
+        echo "DEBEMAIL='$(echo $DEB_MAINTAINER | awk -F '<' '{print $2}' | awk -F '>' '{print $1}')'" >>.env
+        echo "DEBFULLNAME='$(echo $DEB_MAINTAINER | awk -F '<' '{print $1}')'" >>.env
       shell: bash
 
     - name: Generate debian package info
@@ -89,7 +89,7 @@ runs:
           ARG_GEN_ORIG=-n
         fi
 
-        source "$GITHUB_OUTPUT"
+        source .env
 
         dh_make -y -d \
           -p ${{ inputs.package_name }}_${{ inputs.package_version }} \
@@ -100,12 +100,11 @@ runs:
 
     - name: Set up environment
       run: |
-        echo "DEB_ARCH='${{ inputs.arch }}'" >>"$GITHUB_OUTPUT"
-        echo "DEB_BUILD_ARGS='${{ inputs.build_arguments }}'" >>"$GITHUB_OUTPUT"
-        echo "DEB_BUILD_OPTIONS='${{ inputs.build_options }}'" >>"$GITHUB_OUTPUT"
-        echo "DEB_BUILD_PROFILES='${{ inputs.build_profiles }}'" >>"$GITHUB_OUTPUT"
-        echo "GPG_SECRET='${{ inputs.gpg_signing_key }}'" >>"$GITHUB_OUTPUT"
-        cp "$GITHUB_OUTPUT" .env
+        echo "DEB_ARCH='${{ inputs.arch }}'" >>.env
+        echo "DEB_BUILD_ARGS='${{ inputs.build_arguments }}'" >>.env
+        echo "DEB_BUILD_OPTIONS='${{ inputs.build_options }}'" >>.env
+        echo "DEB_BUILD_PROFILES='${{ inputs.build_profiles }}'" >>.env
+        echo "GPG_SECRET='${{ inputs.gpg_signing_key }}'" >>.env
         cat .env
       shell: bash
 
