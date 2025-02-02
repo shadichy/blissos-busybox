@@ -4,7 +4,7 @@
 apt update && apt upgrade -y
 
 # Install build tools
-apt install -y debhelper build-essential
+apt install -y debhelper build-essential grep awk
 
 source .env
 
