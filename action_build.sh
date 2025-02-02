@@ -20,11 +20,7 @@ if [ "$DEB_ARCH" != $(dpkg --print-architecture) ]; then
 fi
 
 dependencies=""
-echo deps:
-dpkg-checkbuilddeps 2>&1
-dpkg-checkbuilddeps 2>&1 | grep 'Unmet build dependencies'
-dpkg-checkbuilddeps 2>&1 | grep 'Unmet build dependencies' | awk -F ':' '{print $4}'
-for p in $(dpkg-checkbuilddeps 2>&1 | grep 'Unmet build dependencies' | awk -F ':' '{print $4}'); do
+for p in $(dpkg-checkbuilddeps 2>&1 | grep -i 'build dependencies' | awk -F ':' '{print $4}'); do
   case "$p" in '('* | *')') ;; *) dependencies="$dependencies $p:$DEB_ARCH" ;; esac
 done
 yes | apt install -y $dependencies || :
