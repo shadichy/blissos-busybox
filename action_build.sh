@@ -21,7 +21,7 @@ fi
 
 dependencies=""
 for p in $(dpkg-checkbuilddeps 2>&1 | grep 'Unmet build dependencies' | awk -F ':' '{print $4}'); do
-  case "$p" in [a-z]*) dependencies="$dependencies $p:$DEB_ARCH" ;; esac
+  case "$p" in '('* | *')') ;; *) dependencies="$dependencies $p:$DEB_ARCH" ;; esac
 done
 yes | apt install -y $dependencies || :
 
