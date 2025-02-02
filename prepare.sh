@@ -33,14 +33,10 @@ else
   DOWNLOAD=curl_dl
 fi
 
-pkgname=busybox
 _latest_tag=$($DOWNLOAD "api/v4/projects/installer-team%2Fbusybox/repository/tags" | grep '"name":' | head -1 | awk -F '"' '{print $4}')
 _branch=${_latest_tag%%/*}
 _full_ver=${_latest_tag##*/}
 _encoded_ver=$(rawurlencode "$_full_ver")
-_ver=${_full_ver//1%/}
-pkgver=${_ver%%/*}
-pkgrel=${_ver##*/}
 
 # Fetch source package
 $DOWNLOAD "installer-team/busybox/-/archive/${_branch}/${_encoded_ver}/busybox-${_branch}-${_encoded_ver}.tar.gz" | tar -xzf -
@@ -99,15 +95,3 @@ done <${rules%.tmp}
 unset IFS
 
 cp -f $rules ${rules%.tmp}
-
-# Create .orig tarball
-tar -cJf ../${pkgname}_${pkgver}.orig.tar.xz .
-
-dpkg-buildpackage -b --no-sign
-
-# export metadata
-cat <<EOF >../metadata.yml
-Name: ${pkgname}
-Version: ${_ver}
-Variants: aaropa aaropa-dbgsym
-EOF
