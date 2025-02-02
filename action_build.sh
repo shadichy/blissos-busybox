@@ -7,6 +7,7 @@ apt update && apt upgrade -y
 apt install -y debhelper build-essential
 
 source .env
+env
 
 # Check for cross-compile
 if [ "$DEB_ARCH" != $(dpkg --print-architecture) ]; then
