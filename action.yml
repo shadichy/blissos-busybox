@@ -69,10 +69,20 @@ runs:
       run: sed -ir 's/^FROM +*$/FROM ${{ inputs.distro }}/gi' ${{ github.action_path }}/Dockerfile
       shell: bash
 
+    - name: Setup maintainer info
+      if: ${{ inputs.package_maintainer != '' }}
+      env:
+        DEB_MAINTAINER: ${{ inputs.package_maintainer }}
+      run: |
+        if [ "$DEB_MAINTAINER" ]; then
+          echo "DEBEMAIL='$(echo $DEB_MAINTAINER | awk -F '<' '{print $2}' | awk -F '>' '{print $1}')'" >>"$GITHUB_OUTPUT"
+          echo "DEBFULLNAME='$(echo $DEB_MAINTAINER | awk -F '<' '{print $1}')'" >>"$GITHUB_OUTPUT"
+        fi
+      shell: bash
+
     - name: Generate debian package info
       if: ${{ inputs.package_name != '' && inputs.package_version != '' }}
       env:
-        DEB_MAINTAINER: ${{ inputs.package_maintainer }}
         DEB_GENERATE_ORIG: ${{ inputs.package_generate_orig }}
       run: |
         apt install -y debhelper
@@ -81,11 +91,7 @@ runs:
           ARG_GEN_ORIG=-n
         fi
 
-        if [ "$DEB_MAINTAINER" ]; then
-          echo "DEBEMAIL='$(echo $DEB_MAINTAINER | awk -F '<' '{print $2}' | awk -F '>' '{print $1}')'" >>"$GITHUB_OUTPUT"
-          echo "DEBFULLNAME='$(echo $DEB_MAINTAINER | awk -F '<' '{print $1}')'" >>"$GITHUB_OUTPUT"
-          source "$GITHUB_OUTPUT"
-        fi
+        source "$GITHUB_OUTPUT"
 
         dh_make -y -d \
           -p ${{ inputs.package_name }}_${{ inputs.package_version }} \
