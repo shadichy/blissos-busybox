@@ -121,7 +121,7 @@ runs:
       run: |
         mkdir build
         sudo tar -C build -psxf build.tar
-        mv build/*.{deb,udeb,buildinfo,changes} .
+        cp build/*.{deb,udeb,buildinfo,changes} . | :
       shell: bash
 
     - name: Generate metadata.yml
