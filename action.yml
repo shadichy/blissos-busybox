@@ -74,10 +74,8 @@ runs:
       env:
         DEB_MAINTAINER: ${{ inputs.package_maintainer }}
       run: |
-        if [ "$DEB_MAINTAINER" ]; then
-          echo "DEBEMAIL='$(echo $DEB_MAINTAINER | awk -F '<' '{print $2}' | awk -F '>' '{print $1}')'" >>"$GITHUB_OUTPUT"
-          echo "DEBFULLNAME='$(echo $DEB_MAINTAINER | awk -F '<' '{print $1}')'" >>"$GITHUB_OUTPUT"
-        fi
+        echo "DEBEMAIL='$(echo $DEB_MAINTAINER | awk -F '<' '{print $2}' | awk -F '>' '{print $1}')'" >>"$GITHUB_OUTPUT"
+        echo "DEBFULLNAME='$(echo $DEB_MAINTAINER | awk -F '<' '{print $1}')'" >>"$GITHUB_OUTPUT"
       shell: bash
 
     - name: Generate debian package info
@@ -108,6 +106,7 @@ runs:
         echo "DEB_BUILD_PROFILES='${{ inputs.build_profiles }}'" >>"$GITHUB_OUTPUT"
         echo "GPG_SECRET='${{ inputs.gpg_signing_key }}'" >>"$GITHUB_OUTPUT"
         cp "$GITHUB_OUTPUT" .env
+        cat .env
       shell: bash
 
     - name: Set up QEMU
