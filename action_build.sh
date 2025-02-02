@@ -23,6 +23,7 @@ dependencies=""
 for p in $(dpkg-checkbuilddeps 2>&1 | grep 'Unmet build dependencies' | awk -F ':' '{print $4}'); do
   case "$p" in '('* | *')') ;; *) dependencies="$dependencies $p:$DEB_ARCH" ;; esac
 done
+echo $dependencies
 yes | apt install -y $dependencies || :
 
 export DEBEMAIL DEBFULLNAME DEB_BUILD_OPTIONS DEB_BUILD_PROFILES
