@@ -31,6 +31,7 @@ jobs:
         with:
           distro: devuan/migrated:ceres-slim
           arch: amd64 i386
+          docker_arch_specific: true
 
       - name: Extract artifact
         run: unzip -o built-deb-files.zip
