@@ -29,7 +29,7 @@ jobs:
       - name: Build DEB package
         uses: DevChall-by-SDCY-and-VXM/debian-buildpackage-template@main
         with:
-          distro: devuan/migrated:ceres-slim
+          distro: debian:unstable-slim
           arch: amd64 i386
           docker_arch_specific: true
 
