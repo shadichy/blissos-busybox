@@ -30,9 +30,10 @@ jobs:
         uses: DevChall-by-SDCY-and-VXM/debian-buildpackage-template@main
         with:
           distro: devuan/migrated:ceres-slim
+          arch: amd64 i386
 
       - name: Extract artifact
-        run: unzip -o built-deb-files-*.zip
+        run: unzip -o built-deb-files.zip
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
