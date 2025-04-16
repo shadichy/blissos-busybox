@@ -1,0 +1,179 @@
+#!/usr/bin/make -f
+SHELL = /bin/sh -e
+
+# in order to keep output non-intermixed together, disable parallel building
+# of different targets in this d/rules but allow running parallel submakes
+.NOTPARALLEL:
+# DEB_BUILD_OPTIONS=parallel=N
+MAKEFLAGS += $(subst parallel=,-j,$(filter parallel=%,${DEB_BUILD_OPTIONS}))
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+V = $(if $(filter terse, ${DEB_BUILD_OPTIONS}),,1)
+
+# Activate full hardening build flags
+export DEB_BUILD_MAINT_OPTIONS := hardening=+all
+# Fast version of dpkg/architecture.mk defining all vars in one go
+ifeq (${DEB_HOST_MULTIARCH},)
+   $(foreach d, $(shell dpkg-architecture | sed 's/=/?=/'), $(eval export $d))
+endif
+include /usr/share/dpkg/default.mk
+
+##############################################################################
+
+TESTSUITE_ENV = SKIP_KNOWN_BUGS=y
+#TESTSUITE_ENV = VERBOSE=y
+# always run tests in UTF8 mode to verify unicode support
+TESTSUITE_ENV += LANG=C.UTF-8 LC_ALL=C.UTF-8
+TESTSUITE_ENV += SKIP_INTERNET_TESTS=y
+# Required for testsuite/taskset.tests
+TESTSUITE_ENV += SHELL='${SHELL}'
+# dash echo does not understand -e, bb builds its own in this case
+TESTSUITE_ENV += ECHO=/bin/echo
+
+# build directory
+b = b
+
+# which flavours to build
+flavours = deb static udeb
+
+ifneq (${DEB_HOST_GNU_TYPE},${DEB_BUILD_GNU_TYPE})
+export CROSS_COMPILE = ${DEB_HOST_GNU_TYPE}-
+endif
+
+# We filter the following from CFLAGS:
+# -O2
+#   to use the optimization setting from busybox's configuration and build
+#   system, causing it to use -Os. This reduces built binaries' size
+#   considerably, making it easier to fit on space constrained systems.
+CFLAGS := $(filter-out -O2, ${CFLAGS})
+
+# Avoid Kconfig outputting the timestamp into generated configuration files. We
+# use this to compare against the configuration files in debian/config/pkg for
+# builds on Linux so that we can detect upstream configuration changes (e.g.
+# added applets).
+export KCONFIG_NOTIMESTAMP=1
+
+install-indep install-arch install \
+binary-indep binary-arch binary \
+: %:
+	dh $@
+
+##############################################################################
+
+configure: $(patsubst %,$b/%/.stamp-setup, ${flavours})
+$(addprefix configure-,${flavours}): configure-%: $b/%/.stamp-setup
+.PHONY: configure $(addprefix configure-,${flavours})
+
+$b/%/.stamp-setup: d = $b/$*
+$b/%/.stamp-setup:
+	rm -rf $d
+	mkdir -p $d
+
+# Generate the .config file. First variable assignment wins.
+# Several steps..
+
+# 1, put any arch-specific overrides so they will have higher precedence
+# should be empty for linux
+	cat debian/config/os/${DEB_HOST_ARCH_OS} > $d/.config
+
+# 2, use the flavour-specific base config file.
+	cat debian/config/pkg/$* >> $d/.config
+
+# 3, sort out the result using oldconfig Kbuild machinery and generate Makefile
+	yes "" | ${MAKE} -C $d -f "${CURDIR}/Makefile" KBUILD_SRC="${CURDIR}" silentoldconfig V=$V
+
+# 4, on linux platform only, compare the re-generated config to the shipped
+# config in the package in order to catch new/changed upstream options.
+ifeq (linux,${DEB_HOST_ARCH_OS})
+	diff -u debian/config/pkg/$* $d/.config
+endif
+
+	ln -s .config $@
+
+##############################################################################
+
+build-arch: $(patsubst %,$b/%/.stamp-build, ${flavours})
+build: build-arch
+$(addprefix build-,${flavours}): build-%: $b/%/.stamp-build
+build-indep:
+.PHONY: build build-arch build-indep $(addprefix build-,${flavours})
+
+# busybox build procedure is very sensitive for (environment) variables, it will
+# remake everything if CFLAGS or LD has changed between build and install phases
+# (and install depends on build, so busybox will be rebuilt during install if
+# any env var has changed).
+# Another problem is that upstream build system (as of 1.35) can not take more
+# than a single target to build when building in parallel, the build fails in
+# this case.  So we can not ask it for `all install' for example.
+# To work around this, we use the upstream makefile only at the build stage,
+# providing all environment explicitly in a single place.
+# And installing will be done without the help from upstream makefiles,
+# based on the information in the generated busybox.links file.
+
+$b/%/.stamp-build: d = $b/$*
+$b/%/.stamp-build: $b/%/.stamp-setup
+	${MAKE} -C $d all \
+	 SKIP_STRIP=y \
+	 BB_EXTRA_VERSION="${DEB_VENDOR} ${DEB_VERSION}" \
+	 CONFIG_EXTRA_CFLAGS='${CFLAGS} ${CPPFLAGS}' \
+	 CONFIG_EXTRA_LDFLAGS='${CFLAGS} ${LDFLAGS}' \
+	 V=$V
+	${MAKE} -C $d busybox.links
+	ln -sf busybox $@
+
+##############################################################################
+
+build-arch: $(if $(filter nocheck,${DEB_BUILD_OPTIONS}),,test-deb)
+$(addprefix test-,${flavours}): test-%: $b/%/.stamp-test
+.PHONY: $(addprefix test-,${flavours})
+
+$b/%/.stamp-test: d = $b/$*
+$b/%/.stamp-test: $b/%/.stamp-build
+	@echo ======== running testsuite in $d ========
+	@if [ ! -f $d/testsuite/.setup ]; then \
+	    rm  -rf $d/testsuite ; \
+	    cp -al testsuite $d/ ; \
+	    rm -f $d/testsuite/mdev.tests; \
+	    [ ! -f debian/testsuite-${DEB_HOST_ARCH_OS}.diff ] || \
+		patch -p1 -d $d/ \
+		  < debian/testsuite-${DEB_HOST_ARCH_OS}.diff ; \
+	    touch $d/testsuite/.setup ; \
+	fi
+	cd $d/testsuite && ${TESTSUITE_ENV} ./runtest -v
+	touch $@
+
+##############################################################################
+
+clean:
+	dh_clean $b/
+	rm -f .kernelrelease # leftover from the build process
+.PHONY: clean
+
+##############################################################################
+
+override_dh_auto_install:
+
+execute_after_dh_link-arch:
+# for udeb we also need links. But we can not easily use `make install'
+# (see comment above). So we run the install rules directly here:
+	dh_link -pbusybox-udeb \
+	  $$(grep -v sbin/init $b/udeb/busybox.links | sed 's|^|/bin/busybox |')
+
+execute_before_dh_gencontrol-arch:
+# after shlibdeps finished, grab ${shlibs:Depends} from busybox package
+# and transform it into Built-Using field (also dpkg-query bug #588505)
+	pkgs=$$(sed -n -e's/([^)]*)//g' -e's/,//g' -e's/^shlibs:Depends=//p' debian/busybox.substvars); \
+	srcs=; for p in $$pkgs; do \
+	  srcs="$$srcs $$(dpkg-query -f '$${source:Package} (= $${source:Version}),' -W $$p)"; \
+	done ; \
+	echo "built-using=$$srcs" >> debian/busybox-static.substvars
+
+# install busybox-klogd startup scripts
+execute_before_dh_installinit:
+	dh_installinit -pbusybox-syslogd --name=busybox-klogd
+override_dh_installsystemd:
+# explicitly list all packages with .service files here
+	dh_installsystemd -pbusybox-syslogd --name=busybox-klogd
+	dh_installsystemd -pbusybox-syslogd
+	dh_installsystemd -pudhcpd --no-enable
